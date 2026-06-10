@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aurea
+      POSTGRES_PASSWORD: aurea
+      POSTGRES_DB: aurea
+    ports:
+      - '5432:5432'
+    volumes:
+      - aurea_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U aurea']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://aurea:aurea@db:5432/aurea?schema=public
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      AI_PROVIDER: ${AI_PROVIDER:-auto}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - '3000:3000'
+    command: sh -c "npx prisma migrate deploy && npm start"
+
+volumes:
+  aurea_db:

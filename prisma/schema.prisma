@@ -1,0 +1,107 @@
+// Aurea data model.
+// PostgreSQL + Prisma. Run `npm run prisma:generate` after editing.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ProjectStatus {
+  DRAFT
+  GENERATING
+  READY
+  FAILED
+  PUBLISHED
+}
+
+enum ProjectKind {
+  WEBSITE
+  STORE
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String?
+  role         UserRole  @default(USER)
+  projects     Project[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+/// A single generation request and its produced site specification.
+model Project {
+  id          String        @id @default(cuid())
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId      String?
+
+  // Brief supplied by the user.
+  companyName String
+  industry    String
+  description String        @db.Text
+  style       String
+  locales     String[]      @default(["en"])
+  kind        ProjectKind   @default(WEBSITE)
+
+  status      ProjectStatus @default(DRAFT)
+  slug        String        @unique
+
+  // The full generated SiteSpec, stored as JSON.
+  spec        Json?
+  // Provider/model that produced the spec ("deterministic" | "anthropic").
+  engine      String?
+
+  products    Product[]
+  runs        GenerationRun[]
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+/// One product in a generated store catalog.
+model Product {
+  id          String   @id @default(cuid())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  sku         String
+  name        String
+  description String   @db.Text
+  priceCents  Int
+  currency    String   @default("USD")
+  category    String?
+  imagePrompt String?
+  createdAt   DateTime @default(now())
+
+  @@unique([projectId, sku])
+  @@index([projectId])
+}
+
+/// Audit trail of generation/self-improvement passes for a project.
+model GenerationRun {
+  id          String   @id @default(cuid())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  engine      String
+  phase       String
+  durationMs  Int
+  ok          Boolean  @default(true)
+  // Quality-gate report (lint/seo/a11y/perf scores) as JSON.
+  report      Json?
+  message     String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+}

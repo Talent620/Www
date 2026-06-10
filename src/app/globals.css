@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white text-slate-900 antialiased;
+}
+
+/* Utility used by generated previews to render their own design tokens. */
+.aurea-preview {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body-font), system-ui, sans-serif;
+}
+.aurea-preview h1,
+.aurea-preview h2,
+.aurea-preview h3 {
+  font-family: var(--heading-font), system-ui, sans-serif;
+}
