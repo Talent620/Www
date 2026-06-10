@@ -72,6 +72,22 @@ npm run dev
 With no `DATABASE_URL`, projects are stored in-memory so you can try the full
 flow immediately. With no `ANTHROPIC_API_KEY`, the deterministic engine runs.
 
+## Access from your local network (phone, tablet, other PCs)
+
+`npm run dev` and `npm start` bind to `0.0.0.0`, so the app is reachable from
+any device on the same Wi-Fi/LAN. To print the exact URL to use:
+
+```bash
+npm run lan            # prints http://<your-LAN-IP>:3000
+# PORT=3100 npm run lan # if you run on another port
+```
+
+Open the printed `Network:` URL on the other device. If it doesn't load, allow
+the port through your firewall (the `lan` command prints the exact command for
+macOS / Linux / Windows). To bind to localhost only instead, use
+`npm run dev:local` / `npm run start:local`. With Docker, `docker compose up`
+already publishes the port to all interfaces.
+
 ## Full stack with Docker
 
 ```bash
