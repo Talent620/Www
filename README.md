@@ -24,6 +24,19 @@ From `{ companyName, industry, description, style, locales, kind }` the engine p
 - **i18n** — a localized string bundle per requested locale
 - **Legal** — privacy policy, terms of service, cookie policy
 - **Quality report** — automated SEO / accessibility / performance / security audit with auto-fixes
+- **Static export (no lock-in)** — one-click download of the whole site as a
+  standalone ZIP: semantic HTML, a single token-driven stylesheet, zero
+  JavaScript, full meta/OG/JSON-LD per page. Host it anywhere — you own it.
+
+### Why Aurea (competitive positioning)
+
+A 2026 review of the market (Wix Harmony, Framer AI, Lovable, Bolt, Durable)
+found the recurring complaints are **platform lock-in, code bloat, and generic
+output**: hosted builders keep your site on their servers in proprietary code,
+and "export" often still depends on their runtime. Aurea is built the other
+way around — every site is a plain `SiteSpec` that renders to **clean,
+ownable, dependency-free HTML** you can take and host anywhere, while still
+giving you the full one-click autonomous generation experience.
 
 ## Architecture
 
@@ -108,8 +121,11 @@ npm run dev
 ```
 
 Returns `{ id, slug, engine, report, phases, previewUrl }`. Open `previewUrl`
-to see the rendered site. `GET /api/sites/:slug/sitemap.xml` returns the
-project's sitemap.
+to see the rendered site.
+
+- `GET /api/sites/:slug/sitemap.xml` — the project's sitemap.
+- `GET /api/export/:slug` — downloads the project as a standalone static-site
+  ZIP (`src/lib/export`), rendered with a zero-dependency HTML + ZIP writer.
 
 ## Project layout
 
@@ -126,6 +142,9 @@ src/
     seo.ts                 SEO + JSON-LD + sitemap
     quality.ts             Automated quality gate (audit + auto-fix)
     engine.ts              Pipeline orchestrator
+  lib/export/             Static-site exporter
+    html.ts               SiteSpec → standalone HTML + CSS
+    zip.ts                Zero-dependency ZIP/CRC-32 writer
   lib/store.ts             Persistence (Postgres or in-memory)
   lib/validation.ts        Zod brief validation
 prisma/schema.prisma       Data model

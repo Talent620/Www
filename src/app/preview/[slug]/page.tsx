@@ -27,6 +27,12 @@ export default async function PreviewPage({
           <Link href="/dashboard" className="font-semibold text-brand-300">← Aurea</Link>
           <span className="text-slate-400">Preview · {project.brief.companyName}</span>
           <span className="rounded bg-slate-700 px-2 py-0.5 text-xs">{project.engine}</span>
+          <a
+            href={`/api/export/${project.slug}`}
+            className="rounded bg-emerald-600 px-2.5 py-1 text-xs font-semibold hover:bg-emerald-500"
+          >
+            ↓ Export static site (.zip)
+          </a>
         </div>
         <nav className="flex flex-wrap gap-1">
           {spec.pages.map((p) => (
