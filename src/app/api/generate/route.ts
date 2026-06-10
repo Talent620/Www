@@ -22,7 +22,11 @@ export async function POST(request: Request) {
 
   try {
     const brief = parseBrief(payload);
-    const result = await generateSite(brief);
+    // Optional per-request engine override; otherwise resolved from config.
+    const raw = (payload as { provider?: unknown })?.provider;
+    const provider =
+      raw === 'anthropic' || raw === 'deterministic' || raw === 'auto' ? raw : undefined;
+    const result = await generateSite(brief, provider);
     const project = await saveProject({
       brief,
       spec: result.spec,

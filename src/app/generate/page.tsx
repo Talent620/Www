@@ -1,8 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+
+interface EngineHealth {
+  engine: { activeEngine: string; liveAvailable: boolean; models: { primary: string } };
+}
 
 const STYLES = ['modern', 'minimal', 'bold', 'elegant', 'playful', 'corporate', 'natural', 'luxury'];
 const LOCALES = ['en', 'pl', 'de', 'fr', 'es'];
@@ -28,6 +32,14 @@ export default function GeneratePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateResponse | null>(null);
+  const [health, setHealth] = useState<EngineHealth | null>(null);
+
+  useEffect(() => {
+    fetch('/api/health')
+      .then((r) => r.json())
+      .then((d: EngineHealth) => setHealth(d))
+      .catch(() => setHealth(null));
+  }, []);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -72,6 +84,23 @@ export default function GeneratePage() {
       <div className="mx-auto max-w-3xl px-6 pb-20">
         <h1 className="text-3xl font-extrabold text-slate-900">Describe your business</h1>
         <p className="mt-2 text-slate-600">Four fields. The engine handles the rest.</p>
+
+        {health && (
+          <div
+            className={`mt-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+              health.engine.liveAvailable
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-amber-200 bg-amber-50 text-amber-800'
+            }`}
+          >
+            <span className={`h-2 w-2 rounded-full ${health.engine.liveAvailable ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+            {health.engine.liveAvailable ? (
+              <span>Live AI engine active — {health.engine.models.primary}</span>
+            ) : (
+              <span>Deterministic engine active. Set <code>ANTHROPIC_API_KEY</code> in <code>.env</code> for live AI.</span>
+            )}
+          </div>
+        )}
 
         <form onSubmit={submit} className="mt-8 space-y-6 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
           <Field label="Company name" htmlFor="companyName">

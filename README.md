@@ -142,6 +142,32 @@ to see the rendered site.
 - `GET /api/sites/:slug/sitemap.xml` — the project's sitemap.
 - `GET /api/export/:slug` — downloads the project as a standalone static-site
   ZIP (`src/lib/export`), rendered with a zero-dependency HTML + ZIP writer.
+- `GET /api/health` — liveness + which AI engine is active, configured models,
+  and storage backend.
+- `GET /api/verify-key` — makes one tiny live call to confirm your
+  `ANTHROPIC_API_KEY` works.
+
+## Enabling the live AI engine
+
+The app runs out of the box on the deterministic engine (no key needed). To
+switch on live Claude generation:
+
+1. Put your key in `.env`:
+   ```bash
+   ANTHROPIC_API_KEY="sk-ant-..."
+   # optional: AI_PROVIDER="auto" (default), AI_MODEL_PRIMARY="claude-opus-4-8"
+   ```
+2. Restart, then confirm it works:
+   ```bash
+   curl http://localhost:3000/api/health      # engine.liveAvailable: true
+   curl http://localhost:3000/api/verify-key  # ok: true
+   ```
+   The generator page also shows a green "Live AI engine active" badge.
+
+Live calls are wrapped so any API error falls back to the deterministic engine
+— a generation never hard-fails. You can also force an engine per request by
+adding `"provider": "anthropic" | "deterministic" | "auto"` to the
+`/api/generate` body.
 
 ## Project layout
 
