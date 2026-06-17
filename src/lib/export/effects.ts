@@ -21,7 +21,8 @@
  * gracefully to the system stack offline.
  */
 export function googleFontsHref(headingFont: string, bodyFont: string): string {
-  const families = Array.from(new Set([headingFont, bodyFont]))
+  const fonts = [headingFont, bodyFont].filter((f): f is string => Boolean(f && f.trim()));
+  const families = Array.from(new Set(fonts.length ? fonts : ['Inter']))
     .map((f) => `family=${f.trim().replace(/\s+/g, '+')}:wght@400;500;600;700;800`)
     .join('&');
   return `https://fonts.googleapis.com/css2?${families}&display=swap`;

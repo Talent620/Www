@@ -75,7 +75,7 @@ export function buildTypography(brief: Brief): TypographySystem {
   const seed = hashString(`${brief.companyName}:${brief.style}`);
   return {
     headingFont: HEADING_FONTS[seed % HEADING_FONTS.length]!,
-    bodyFont: BODY_FONTS[(seed >> 3) % BODY_FONTS.length]!,
+    bodyFont: BODY_FONTS[(seed >>> 3) % BODY_FONTS.length]!,
     scale: [
       { name: 'display', sizeRem: 3.5, weight: 800 },
       { name: 'h1', sizeRem: 2.5, weight: 700 },
