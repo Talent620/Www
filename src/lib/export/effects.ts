@@ -48,9 +48,12 @@ export function effectsCss(): string {
   background-size:200% 200%;animation:aurora-shift 18s ease-in-out infinite}
 @keyframes aurora-shift{0%,100%{background-position:0% 0%,100% 0%,50% 100%}50%{background-position:100% 50%,0% 50%,50% 0%}}
 
-.hero h1{background:linear-gradient(120deg,var(--text),color-mix(in srgb,var(--primary) 80%,var(--text)),var(--accent));
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  background-size:200% auto;animation:sheen 6s linear infinite}
+.hero h1{background-image:linear-gradient(120deg,var(--text),color-mix(in srgb,var(--primary) 80%,var(--text)),var(--accent));
+  background-size:200% auto}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  .hero h1{-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    animation:sheen 6s linear infinite}
+}
 @keyframes sheen{to{background-position:200% center}}
 
 .btn{position:relative;transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease;
@@ -70,12 +73,12 @@ export function effectsCss(): string {
 .stats strong{display:inline-block;animation:float 5s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 
-/* scroll-reveal */
-.reveal{opacity:0;transform:translateY(26px) scale(.985);
+/* scroll-reveal — gated on .js so content is fully visible if JS never runs */
+.js .reveal{opacity:0;transform:translateY(26px) scale(.985);
   transition:opacity .7s cubic-bezier(.2,.8,.2,1),transform .7s cubic-bezier(.2,.8,.2,1)}
-.reveal.is-visible{opacity:1;transform:none}
+.js .reveal.is-visible{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){
-  .reveal{opacity:1;transform:none;transition:none}
+  .js .reveal{opacity:1;transform:none;transition:none}
   .hero h1,.stats strong,.hero.no-webgl{animation:none}
 }`;
 }
@@ -87,8 +90,11 @@ export function effectsCss(): string {
  */
 export function effectsJs(): string {
   return `(()=>{
-var VS=${JSON.stringify(AURORA_VERT)},FS=${JSON.stringify(AURORA_FRAG)};
 "use strict";
+var VS=${JSON.stringify(AURORA_VERT)},FS=${JSON.stringify(AURORA_FRAG)};
+var docEl=document.documentElement;
+docEl.classList.add("js");
+function bail(){docEl.classList.remove("js");}
 var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 var css=getComputedStyle(document.documentElement);
 function v(n,f){var x=css.getPropertyValue(n).trim();return x||f;}
@@ -145,8 +151,11 @@ function aurora(canvas){
     requestAnimationFrame(loop);})(start);
 }
 
-function init(){reveal();tilt();
-  var c=document.querySelector(".hero-canvas");if(c)aurora(c);}
+function init(){
+  try{reveal();}catch(e){bail();}
+  try{tilt();}catch(e){}
+  try{var c=document.querySelector(".hero-canvas");if(c)aurora(c);}catch(e){}
+}
 if(document.readyState!=="loading")init();else addEventListener("DOMContentLoaded",init);
 })();`;
 }

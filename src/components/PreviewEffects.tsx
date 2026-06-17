@@ -13,6 +13,9 @@ export function PreviewEffects({ scope }: { scope: React.RefObject<HTMLElement> 
   useEffect(() => {
     const root = scope.current;
     if (!root) return;
+    // Gate reveal animations on `.js` so content is fully visible if this
+    // effect never runs (parity with the static export's behaviour).
+    document.documentElement.classList.add('js');
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const cleanups: (() => void)[] = [];
 
