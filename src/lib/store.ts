@@ -18,7 +18,11 @@ export interface StoredProject {
  * otherwise an in-process store so the app is fully runnable with zero infra
  * (e.g. for previews, demos, and tests).
  */
-const memory = new Map<string, StoredProject>();
+// Cached on the global object so generated projects survive Next.js dev-mode
+// module re-evaluation between requests (POST /api/generate then GET /preview).
+const globalForStore = globalThis as unknown as { aureaMemory?: Map<string, StoredProject> };
+const memory = globalForStore.aureaMemory ?? new Map<string, StoredProject>();
+if (process.env.NODE_ENV !== 'production') globalForStore.aureaMemory = memory;
 
 function makeId(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);

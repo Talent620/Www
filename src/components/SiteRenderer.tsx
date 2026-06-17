@@ -1,11 +1,19 @@
+'use client';
+
+import { useRef } from 'react';
 import type { SiteSpec, Page, Section } from '@/lib/ai/types';
+import { effectsCss } from '@/lib/export/effects';
+import { PreviewEffects } from './PreviewEffects';
 
 /**
  * Renders a generated SiteSpec into a live page using the spec's own design
  * tokens (color, typography, radius) injected as CSS variables. This is the
- * preview surface; the same data drives an eventual static export.
+ * preview surface; the same data drives the static export. The hi-level visual
+ * layer (animated WebGL hero, 3D tilt, scroll-reveal) is shared with the export
+ * via `effectsCss()` + `PreviewEffects`.
  */
 export function SiteRenderer({ spec, page }: { spec: SiteSpec; page: Page }) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const d = spec.design;
   const styleVars = {
     '--bg': d.colors.background,
@@ -22,7 +30,9 @@ export function SiteRenderer({ spec, page }: { spec: SiteSpec; page: Page }) {
   const navPages = spec.pages.filter((p) => p.showInNav);
 
   return (
-    <div className="aurea-preview min-h-screen" style={styleVars}>
+    <div ref={rootRef} className="aurea-preview min-h-screen" style={styleVars}>
+      <style dangerouslySetInnerHTML={{ __html: effectsCss() }} />
+      <PreviewEffects scope={rootRef} />
       <header
         className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 backdrop-blur"
         style={{ background: 'color-mix(in srgb, var(--bg) 85%, transparent)', borderBottom: '1px solid var(--surface)' }}
@@ -64,8 +74,9 @@ function SectionView({ section, spec }: { section: Section; spec: SiteSpec }) {
   switch (section.kind) {
     case 'hero':
       return (
-        <section className="px-6 py-24 text-center animate-fade-up">
-          <h1 className="mx-auto max-w-3xl text-4xl font-extrabold sm:text-5xl" style={{ color: 'var(--text)' }}>
+        <section className="hero reveal relative px-6 py-32 text-center">
+          <canvas className="hero-canvas" aria-hidden="true" />
+          <h1 className="mx-auto max-w-3xl text-4xl font-extrabold sm:text-6xl" style={{ color: 'var(--text)' }}>
             {section.heading}
           </h1>
           {section.subheading && (
@@ -91,7 +102,7 @@ function SectionView({ section, spec }: { section: Section; spec: SiteSpec }) {
       );
     case 'stats':
       return (
-        <section className="px-6 py-14" style={{ background: 'var(--surface)' }}>
+        <section className="reveal px-6 py-14" style={{ background: 'var(--surface)' }}>
           <div className="mx-auto grid max-w-3xl grid-cols-3 gap-6 text-center">
             {(section.items ?? []).map((item, i) => (
               <div key={i}>
@@ -181,7 +192,7 @@ function SectionView({ section, spec }: { section: Section; spec: SiteSpec }) {
       );
     case 'cta':
       return (
-        <section className="px-6 py-20 text-center" style={{ background: 'var(--primary)' }}>
+        <section className="reveal px-6 py-20 text-center" style={{ background: 'var(--primary)' }}>
           <h2 className="text-3xl font-bold" style={{ color: 'var(--bg)' }}>{section.heading}</h2>
           {section.body && <p className="mx-auto mt-3 max-w-xl" style={{ color: 'color-mix(in srgb, var(--bg) 85%, transparent)' }}>{section.body}</p>}
           {section.cta && (
@@ -196,7 +207,7 @@ function SectionView({ section, spec }: { section: Section; spec: SiteSpec }) {
       );
     case 'logoCloud':
       return (
-        <section className="px-6 py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>
+        <section className="reveal px-6 py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>
           {section.heading}
           <div className="mt-4 flex flex-wrap justify-center gap-8 opacity-60">
             {['Acme', 'Globex', 'Initech', 'Umbra', 'Stark'].map((b) => (
@@ -222,7 +233,7 @@ function SectionView({ section, spec }: { section: Section; spec: SiteSpec }) {
 
 function Block({ heading, subheading, children }: { heading?: string; subheading?: string; children: React.ReactNode }) {
   return (
-    <section className="px-6 py-16">
+    <section className="reveal px-6 py-16">
       {heading && (
         <div className="mx-auto mb-8 max-w-2xl text-center">
           <h2 className="text-2xl font-bold sm:text-3xl" style={{ color: 'var(--text)' }}>{heading}</h2>
@@ -236,10 +247,7 @@ function Block({ heading, subheading, children }: { heading?: string; subheading
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="p-5 transition hover:-translate-y-0.5"
-      style={{ background: 'var(--surface)', borderRadius: 'var(--radius)' }}
-    >
+    <div className="card p-5" style={{ borderRadius: 'var(--radius)' }}>
       {children}
     </div>
   );
@@ -248,7 +256,7 @@ function Card({ children }: { children: React.ReactNode }) {
 function CtaButton({ label }: { label: string }) {
   return (
     <span
-      className="mt-8 inline-block px-7 py-3 font-semibold"
+      className="btn mt-8 inline-block px-7 py-3 font-semibold"
       style={{ background: 'var(--primary)', color: 'var(--bg)', borderRadius: 'var(--radius)' }}
     >
       {label}

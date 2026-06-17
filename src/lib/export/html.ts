@@ -1,6 +1,7 @@
 import type { SiteSpec, Page, Section, SeoMeta, BlogPost, LegalDoc, CatalogProduct } from '../ai/types';
 import { buildZip, type ZipEntry } from './zip';
 import { sitemapXml } from '../ai/seo';
+import { effectsCss, effectsJs } from './effects';
 
 /**
  * Static HTML exporter.
@@ -45,6 +46,7 @@ function head(spec: SiteSpec, seo: SeoMeta): string {
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
   <link rel="stylesheet" href="/styles.css">
   ${jsonLd}
+  <script src="/app.js" defer></script>
 </head>`;
 }
 
@@ -81,14 +83,15 @@ function footer(spec: SiteSpec): string {
 function sectionHtml(section: Section, spec: SiteSpec): string {
   switch (section.kind) {
     case 'hero':
-      return `<section class="hero">
+      return `<section class="hero reveal">
+  <canvas class="hero-canvas" aria-hidden="true"></canvas>
   <h1>${esc(section.heading ?? '')}</h1>
   ${section.subheading ? `<p class="sub">${esc(section.subheading)}</p>` : ''}
   ${section.cta ? `<a class="btn" href="${href(section.cta.href)}">${esc(section.cta.label)}</a>` : ''}
 </section>`;
     case 'features':
     case 'pricing':
-      return `<section class="block">
+      return `<section class="block reveal">
   ${section.heading ? `<h2>${esc(section.heading)}</h2>` : ''}
   ${section.subheading ? `<p class="sub">${esc(section.subheading)}</p>` : ''}
   <div class="grid">${(section.items ?? [])
@@ -96,25 +99,25 @@ function sectionHtml(section: Section, spec: SiteSpec): string {
     .join('')}</div>
 </section>`;
     case 'stats':
-      return `<section class="stats">${(section.items ?? [])
+      return `<section class="stats reveal">${(section.items ?? [])
         .map((i) => `<div><strong>${esc(i.title)}</strong><span>${esc(i.body)}</span></div>`)
         .join('')}</section>`;
     case 'testimonials':
-      return `<section class="block">
+      return `<section class="block reveal">
   ${section.heading ? `<h2>${esc(section.heading)}</h2>` : ''}
   <div class="grid">${(section.items ?? [])
     .map((i) => `<figure class="card"><blockquote>“${esc(i.body)}”</blockquote><figcaption>— ${esc(i.title)}</figcaption></figure>`)
     .join('')}</div>
 </section>`;
     case 'faq':
-      return `<section class="block">
+      return `<section class="block reveal">
   ${section.heading ? `<h2>${esc(section.heading)}</h2>` : ''}
   <div class="faq">${(section.faqs ?? [])
     .map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`)
     .join('')}</div>
 </section>`;
     case 'contactForm':
-      return `<section class="block">
+      return `<section class="block reveal">
   ${section.heading ? `<h2>${esc(section.heading)}</h2>` : ''}
   ${section.subheading ? `<p class="sub">${esc(section.subheading)}</p>` : ''}
   <form class="contact" method="post" action="#contact">
@@ -132,7 +135,7 @@ function sectionHtml(section: Section, spec: SiteSpec): string {
   </form>
 </section>`;
     case 'productGrid':
-      return `<section class="block">
+      return `<section class="block reveal">
   ${section.heading ? `<h2>${esc(section.heading)}</h2>` : ''}
   ${section.subheading ? `<p class="sub">${esc(section.subheading)}</p>` : ''}
   <div class="grid products">${(spec.store?.products ?? [])
@@ -145,7 +148,7 @@ function sectionHtml(section: Section, spec: SiteSpec): string {
     .join('')}</div>
 </section>`;
     case 'cta':
-      return `<section class="cta-band">
+      return `<section class="cta-band reveal">
   <h2>${esc(section.heading ?? '')}</h2>
   ${section.body ? `<p>${esc(section.body)}</p>` : ''}
   ${section.cta ? `<a class="btn invert" href="${href(section.cta.href)}">${esc(section.cta.label)}</a>` : ''}
@@ -153,7 +156,7 @@ function sectionHtml(section: Section, spec: SiteSpec): string {
     case 'logoCloud':
       return `<section class="logocloud"><p>${esc(section.heading ?? '')}</p></section>`;
     case 'richText':
-      return `<section class="block prose">
+      return `<section class="block prose reveal">
   ${section.heading ? `<h2>${esc(section.heading)}</h2>` : ''}
   ${(section.body ?? '')
     .split('\n\n')
@@ -304,7 +307,8 @@ main{display:block}
 .prose li{margin-left:1.2rem;color:var(--muted)}
 .site-footer{padding:2.5rem 1.5rem;text-align:center;background:var(--surface);color:var(--muted);font-size:.88rem}
 .site-footer nav{display:flex;justify-content:center;gap:1.2rem;margin-top:.7rem}
-@media(max-width:640px){.site-header nav{display:none}.stats{flex-direction:column;gap:1.5rem}}`;
+@media(max-width:640px){.site-header nav{display:none}.stats{flex-direction:column;gap:1.5rem}}
+${effectsCss()}`;
 }
 
 /** File path inside the archive for an internal route. */
@@ -334,6 +338,7 @@ export function exportSiteFiles(spec: SiteSpec): ZipEntry[] {
     }
   }
   entries.push({ name: 'styles.css', data: renderStylesheet(spec) });
+  entries.push({ name: 'app.js', data: effectsJs() });
   entries.push({ name: 'logo.svg', data: spec.design.logo.svg });
   entries.push({ name: 'sitemap.xml', data: sitemapXml(spec.sitemap) });
   entries.push({ name: 'robots.txt', data: 'User-agent: *\nAllow: /\n\nSitemap: /sitemap.xml\n' });
