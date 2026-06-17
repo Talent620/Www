@@ -64,11 +64,15 @@ function nav(spec: SiteSpec, activePath: string): string {
     .map(
       (p) =>
         `<a href="${href(p.path)}"${p.path === activePath ? ' aria-current="page"' : ''}>${esc(p.navLabel)}</a>`,
-    )
-    .join('');
+    );
+  // Surface the blog in the main nav when it has published posts.
+  if (spec.blog.some((post) => !post.draft)) {
+    const active = activePath === '/blog' ? ' aria-current="page"' : '';
+    links.push(`<a href="/blog/"${active}>Blog</a>`);
+  }
   return `<header class="site-header">
   <a class="brand" href="/"><span class="brand-logo">${spec.design.logo.svg}</span>${esc(spec.brief.companyName)}</a>
-  <nav aria-label="Main">${links}</nav>
+  <nav aria-label="Main">${links.join('')}</nav>
 </header>`;
 }
 
@@ -189,6 +193,32 @@ ${footer(spec)}
 export function renderPageHtml(spec: SiteSpec, page: Page): string {
   const main = page.sections.map((s) => sectionHtml(s, spec)).join('\n');
   return document(spec, page.seo, page.path, main);
+}
+
+/** Blog index: a listing of all published posts. */
+export function renderBlogIndexHtml(spec: SiteSpec): string {
+  const posts = spec.blog.filter((p) => !p.draft);
+  const cards = posts
+    .map(
+      (p) => `<a class="card" href="/blog/${p.slug}/">
+      <h3>${esc(p.title)}</h3>
+      <p>${esc(p.excerpt)}</p>
+      ${p.tags.length ? `<p class="cat">${p.tags.map(esc).join(' · ')}</p>` : ''}</a>`,
+    )
+    .join('');
+  const main = `<section class="block reveal">
+  <h2>Blog</h2>
+  <p class="sub">Insights and guides from ${esc(spec.brief.companyName)}.</p>
+  <div class="grid">${cards}</div>
+</section>`;
+  const base = spec.pages[0]!.seo;
+  const seo: SeoMeta = {
+    ...base,
+    title: `Blog | ${spec.brief.companyName}`.slice(0, 60),
+    description: `Articles and guides from ${spec.brief.companyName}.`,
+    canonical: `${base.canonical.replace(/\/$/, '')}/blog`,
+  };
+  return document(spec, seo, '/blog', main);
 }
 
 export function renderBlogPostHtml(spec: SiteSpec, post: BlogPost): string {
@@ -327,7 +357,11 @@ export function exportSiteFiles(spec: SiteSpec): ZipEntry[] {
   for (const page of spec.pages) {
     entries.push({ name: fileFor(page.path), data: renderPageHtml(spec, page) });
   }
-  for (const post of spec.blog) {
+  const publishedPosts = spec.blog.filter((post) => !post.draft);
+  if (publishedPosts.length > 0) {
+    entries.push({ name: 'blog/index.html', data: renderBlogIndexHtml(spec) });
+  }
+  for (const post of publishedPosts) {
     entries.push({ name: `blog/${post.slug}/index.html`, data: renderBlogPostHtml(spec, post) });
   }
   for (const doc of spec.legal) {

@@ -82,7 +82,9 @@ export function buildArticleSeo(brief: Brief, post: Omit<BlogPost, 'seo'>): SeoM
 export function buildSitemap(spec: Omit<SiteSpec, 'sitemap'>): string[] {
   const paths = new Set<string>();
   for (const page of spec.pages) paths.add(page.path);
-  for (const post of spec.blog) paths.add(`/blog/${post.slug}`);
+  const publishedPosts = spec.blog.filter((post) => !post.draft);
+  if (publishedPosts.length > 0) paths.add('/blog');
+  for (const post of publishedPosts) paths.add(`/blog/${post.slug}`);
   if (spec.store) {
     paths.add('/shop');
     for (const product of spec.store.products) paths.add(`/shop/${product.sku.toLowerCase()}`);

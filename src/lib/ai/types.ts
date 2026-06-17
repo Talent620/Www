@@ -120,6 +120,8 @@ export interface BlogPost {
   body: string;
   tags: string[];
   seo: SeoMeta;
+  /** Drafts are managed in the editor but excluded from export and sitemap. */
+  draft?: boolean;
 }
 
 export interface CatalogProduct {

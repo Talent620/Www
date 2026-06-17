@@ -2,9 +2,10 @@
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
-import type { SiteSpec } from '@/lib/ai/types';
+import type { BlogPost, SiteSpec } from '@/lib/ai/types';
 import { setByPath } from '@/lib/edit';
 import { SiteRenderer } from './SiteRenderer';
+import { BlogManager } from './BlogManager';
 
 type SaveState = { status: 'idle' | 'saving' | 'saved' | 'error'; message?: string };
 
@@ -17,8 +18,15 @@ type SaveState = { status: 'idle' | 'saving' | 'saved' | 'error'; message?: stri
 export function SiteEditor({ initialSpec, slug }: { initialSpec: SiteSpec; slug: string }) {
   const [spec, setSpec] = useState<SiteSpec>(initialSpec);
   const [pageIndex, setPageIndex] = useState(0);
+  const [view, setView] = useState<'site' | 'blog'>('site');
   const [dirty, setDirty] = useState(false);
   const [save, setSave] = useState<SaveState>({ status: 'idle' });
+
+  const setBlog = useCallback((posts: BlogPost[]) => {
+    setSpec((s) => ({ ...s, blog: posts }));
+    setDirty(true);
+    setSave({ status: 'idle' });
+  }, []);
 
   const onEdit = useCallback((path: string, value: string) => {
     setSpec((s) => setByPath(s, path, value));
@@ -68,22 +76,41 @@ export function SiteEditor({ initialSpec, slug }: { initialSpec: SiteSpec; slug:
         <Link href="/dashboard" className="font-semibold text-brand-300">← Aurea</Link>
         <span className="hidden text-slate-400 sm:inline">Editor · {spec.brief.companyName}</span>
 
-        <select
-          value={pageIndex}
-          onChange={(e) => setPageIndex(Number(e.target.value))}
-          className="rounded bg-slate-700 px-2 py-1 text-xs text-white"
-          aria-label="Page"
-        >
-          {spec.pages.map((p, i) => (
-            <option key={p.path} value={i}>{p.navLabel || p.title}</option>
-          ))}
-        </select>
-
-        <div className="flex items-center gap-2">
-          <ColorField label="Primary" value={c.primary} onChange={(v) => setColor('primary', v)} />
-          <ColorField label="Accent" value={c.accent} onChange={(v) => setColor('accent', v)} />
-          <ColorField label="Background" value={c.background} onChange={(v) => setColor('background', v)} />
+        <div className="flex overflow-hidden rounded border border-slate-700 text-xs">
+          <button
+            onClick={() => setView('site')}
+            className={`px-2.5 py-1 ${view === 'site' ? 'bg-brand-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+          >
+            Pages
+          </button>
+          <button
+            onClick={() => setView('blog')}
+            className={`px-2.5 py-1 ${view === 'blog' ? 'bg-brand-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+          >
+            Blog
+          </button>
         </div>
+
+        {view === 'site' && (
+          <>
+            <select
+              value={pageIndex}
+              onChange={(e) => setPageIndex(Number(e.target.value))}
+              className="rounded bg-slate-700 px-2 py-1 text-xs text-white"
+              aria-label="Page"
+            >
+              {spec.pages.map((p, i) => (
+                <option key={p.path} value={i}>{p.navLabel || p.title}</option>
+              ))}
+            </select>
+
+            <div className="flex items-center gap-2">
+              <ColorField label="Primary" value={c.primary} onChange={(v) => setColor('primary', v)} />
+              <ColorField label="Accent" value={c.accent} onChange={(v) => setColor('accent', v)} />
+              <ColorField label="Background" value={c.background} onChange={(v) => setColor('background', v)} />
+            </div>
+          </>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-slate-400">
@@ -114,11 +141,16 @@ export function SiteEditor({ initialSpec, slug }: { initialSpec: SiteSpec; slug:
         </div>
       </div>
 
-      <p className="bg-brand-950/40 px-4 py-1.5 text-center text-xs text-brand-200">
-        💡 Click any text on the page to edit it. Changes are saved to your project and flow into the export.
-      </p>
-
-      <SiteRenderer spec={spec} page={page} pageIndex={pageIndex} editable onEdit={onEdit} />
+      {view === 'site' ? (
+        <>
+          <p className="bg-brand-950/40 px-4 py-1.5 text-center text-xs text-brand-200">
+            💡 Click any text on the page to edit it. Changes are saved to your project and flow into the export.
+          </p>
+          <SiteRenderer spec={spec} page={page} pageIndex={pageIndex} editable onEdit={onEdit} />
+        </>
+      ) : (
+        <BlogManager posts={spec.blog} companyName={spec.brief.companyName} onChange={setBlog} />
+      )}
     </div>
   );
 }

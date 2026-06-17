@@ -8,6 +8,7 @@ import {
   esc,
 } from '@/lib/export/html';
 import { generateSite } from '@/lib/ai/engine';
+import { buildSitemap } from '@/lib/ai/seo';
 import type { Brief } from '@/lib/ai/types';
 
 const websiteBrief: Brief = {
@@ -86,6 +87,27 @@ describe('static HTML export', () => {
     const html = renderProductHtml(spec, spec.store!.products[0]!);
     expect(html).toContain('"@type":"Product"');
     expect(html).toContain('"availability":"https://schema.org/InStock"');
+  });
+
+  it('emits a blog index and excludes draft posts from export + sitemap', async () => {
+    const { spec } = await generateSite(websiteBrief, 'deterministic');
+    expect(spec.blog.length).toBeGreaterThan(1);
+
+    // All published: blog index present, every post exported.
+    let names = exportSiteFiles(spec).map((f) => f.name);
+    expect(names).toContain('blog/index.html');
+    for (const post of spec.blog) expect(names).toContain(`blog/${post.slug}/index.html`);
+
+    // Mark one post as a draft: it must disappear from export and sitemap.
+    const draft = spec.blog[0]!;
+    draft.draft = true;
+    names = exportSiteFiles(spec).map((f) => f.name);
+    expect(names).not.toContain(`blog/${draft.slug}/index.html`);
+    expect(names).toContain('blog/index.html'); // others still published
+
+    const sitemap = buildSitemap(spec);
+    expect(sitemap).toContain('/blog');
+    expect(sitemap).not.toContain(`/blog/${draft.slug}`);
   });
 
   it('packages the whole site into a downloadable zip', async () => {
