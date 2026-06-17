@@ -87,6 +87,34 @@ export async function saveProject(input: {
   return project;
 }
 
+/**
+ * Persist an edited SiteSpec for an existing project (used by the editor).
+ * Updates both the in-memory store and, when configured, the database row.
+ */
+export async function updateProject(
+  idOrSlug: string,
+  spec: SiteSpec,
+): Promise<StoredProject | null> {
+  const existing = await getProject(idOrSlug);
+  if (!existing) return null;
+  const updated: StoredProject = { ...existing, spec };
+
+  if (hasDatabase()) {
+    try {
+      await prisma.project.update({
+        where: { slug: existing.slug },
+        data: { spec: spec as unknown as object },
+      });
+    } catch {
+      // Fall through to in-memory if the database is unreachable.
+    }
+  }
+
+  memory.set(updated.id, updated);
+  memory.set(updated.slug, updated);
+  return updated;
+}
+
 export async function getProject(idOrSlug: string): Promise<StoredProject | null> {
   if (memory.has(idOrSlug)) return memory.get(idOrSlug) ?? null;
 

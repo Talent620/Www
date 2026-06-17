@@ -27,6 +27,12 @@ export default async function PreviewPage({
           <Link href="/dashboard" className="font-semibold text-brand-300">← Aurea</Link>
           <span className="text-slate-400">Preview · {project.brief.companyName}</span>
           <span className="rounded bg-slate-700 px-2 py-0.5 text-xs">{project.engine}</span>
+          <Link
+            href={`/editor/${project.slug}`}
+            className="rounded bg-brand-600 px-2.5 py-1 text-xs font-semibold hover:bg-brand-500"
+          >
+            ✎ Edit
+          </Link>
           <a
             href={`/api/export/${project.slug}`}
             className="rounded bg-emerald-600 px-2.5 py-1 text-xs font-semibold hover:bg-emerald-500"
