@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { AURORA_VERT, AURORA_FRAG } from '@/lib/export/effects';
+import {
+  AURORA_VERT,
+  AURORA_FRAG,
+  PARTICLE_VERT,
+  PARTICLE_FRAG,
+  spherePoints,
+} from '@/lib/export/effects';
+
+const SPHERE = new Float32Array(spherePoints(520));
 
 /**
  * Activates the hi-level visual layer inside the live preview: WebGL aurora
@@ -79,12 +87,16 @@ function hexToRgb(h: string): [number, number, number] {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-/** Starts the aurora shader on a canvas; returns a cleanup, or null on fallback. */
+/**
+ * Renders the hero scene: animated aurora background + a rotating 3D particle
+ * globe (additive glow). Returns a cleanup, or null when WebGL is unavailable.
+ * Mirrors the static export's `scene()` and shares the same shader source.
+ */
 function startAurora(canvas: HTMLCanvasElement, reduce: boolean): (() => void) | null {
   const hero = canvas.closest('.hero');
   let gl: WebGLRenderingContext | null = null;
   try {
-    gl = (canvas.getContext('webgl') ||
+    gl = (canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false }) ||
       canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
   } catch {
     /* ignore */
@@ -93,49 +105,78 @@ function startAurora(canvas: HTMLCanvasElement, reduce: boolean): (() => void) |
     hero?.classList.add('no-webgl');
     return null;
   }
+  const g = gl;
   const css = getComputedStyle(canvas);
   const sh = (ty: number, src: string) => {
-    const s = gl!.createShader(ty)!;
-    gl!.shaderSource(s, src);
-    gl!.compileShader(s);
+    const s = g.createShader(ty)!;
+    g.shaderSource(s, src);
+    g.compileShader(s);
     return s;
   };
-  const pr = gl.createProgram()!;
-  gl.attachShader(pr, sh(gl.VERTEX_SHADER, AURORA_VERT));
-  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, AURORA_FRAG));
-  gl.linkProgram(pr);
-  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) {
+  const prog = (vs: string, fs: string) => {
+    const p = g.createProgram()!;
+    g.attachShader(p, sh(g.VERTEX_SHADER, vs));
+    g.attachShader(p, sh(g.FRAGMENT_SHADER, fs));
+    g.linkProgram(p);
+    return g.getProgramParameter(p, g.LINK_STATUS) ? p : null;
+  };
+  const aur = prog(AURORA_VERT, AURORA_FRAG);
+  const par = prog(PARTICLE_VERT, PARTICLE_FRAG);
+  if (!aur || !par) {
     hero?.classList.add('no-webgl');
     return null;
   }
-  gl.useProgram(pr);
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const loc = gl.getAttribLocation(pr, 'p');
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  const uR = gl.getUniformLocation(pr, 'r');
-  const uT = gl.getUniformLocation(pr, 't');
   const color = (name: string, fallback: string) =>
     hexToRgb(css.getPropertyValue(name) || fallback);
-  gl.uniform3fv(gl.getUniformLocation(pr, 'c1'), color('--bg', '#0b1020'));
-  gl.uniform3fv(gl.getUniformLocation(pr, 'c2'), color('--primary', '#3563ff'));
-  gl.uniform3fv(gl.getUniformLocation(pr, 'c3'), color('--accent', '#22d3ee'));
+  const bg = color('--bg', '#0b1020');
+  const pri = color('--primary', '#3563ff');
+  const acc = color('--accent', '#22d3ee');
+
+  const tbuf = g.createBuffer();
+  g.bindBuffer(g.ARRAY_BUFFER, tbuf);
+  g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+  const pbuf = g.createBuffer();
+  g.bindBuffer(g.ARRAY_BUFFER, pbuf);
+  g.bufferData(g.ARRAY_BUFFER, SPHERE, g.STATIC_DRAW);
+  const aLoc = g.getAttribLocation(aur, 'p');
+  const pLoc = g.getAttribLocation(par, 'pos');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
   const size = () => {
-    const d = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = canvas.clientWidth * d;
-    canvas.height = canvas.clientHeight * d;
-    gl!.viewport(0, 0, canvas.width, canvas.height);
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    g.viewport(0, 0, canvas.width, canvas.height);
   };
   size();
   window.addEventListener('resize', size);
   const start = performance.now();
   let raf = 0;
   const loop = (now: number) => {
-    gl!.uniform2f(uR, canvas.width, canvas.height);
-    gl!.uniform1f(uT, (now - start) / 1000);
-    gl!.drawArrays(gl!.TRIANGLES, 0, 3);
+    const t = (now - start) / 1000;
+    g.disable(g.BLEND);
+    g.useProgram(aur);
+    g.bindBuffer(g.ARRAY_BUFFER, tbuf);
+    g.enableVertexAttribArray(aLoc);
+    g.vertexAttribPointer(aLoc, 2, g.FLOAT, false, 0, 0);
+    g.uniform2f(g.getUniformLocation(aur, 'r'), canvas.width, canvas.height);
+    g.uniform1f(g.getUniformLocation(aur, 't'), t);
+    g.uniform3fv(g.getUniformLocation(aur, 'c1'), bg);
+    g.uniform3fv(g.getUniformLocation(aur, 'c2'), pri);
+    g.uniform3fv(g.getUniformLocation(aur, 'c3'), acc);
+    g.drawArrays(g.TRIANGLES, 0, 3);
+
+    g.enable(g.BLEND);
+    g.blendFunc(g.SRC_ALPHA, g.ONE);
+    g.useProgram(par);
+    g.bindBuffer(g.ARRAY_BUFFER, pbuf);
+    g.enableVertexAttribArray(pLoc);
+    g.vertexAttribPointer(pLoc, 3, g.FLOAT, false, 0, 0);
+    g.uniform1f(g.getUniformLocation(par, 't'), t);
+    g.uniform1f(g.getUniformLocation(par, 'dpr'), dpr);
+    g.uniform2f(g.getUniformLocation(par, 'res'), canvas.width, canvas.height);
+    g.uniform3fv(g.getUniformLocation(par, 'col'), acc);
+    g.uniform3fv(g.getUniformLocation(par, 'col2'), pri);
+    g.drawArrays(g.POINTS, 0, SPHERE.length / 3);
     raf = requestAnimationFrame(loop);
   };
   raf = requestAnimationFrame(loop);

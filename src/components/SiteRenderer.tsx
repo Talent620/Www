@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import type { SiteSpec, Page, Section } from '@/lib/ai/types';
-import { effectsCss } from '@/lib/export/effects';
+import { effectsCss, googleFontsHref } from '@/lib/export/effects';
 import { PreviewEffects } from './PreviewEffects';
 
 /**
@@ -31,6 +31,9 @@ export function SiteRenderer({ spec, page }: { spec: SiteSpec; page: Page }) {
 
   return (
     <div ref={rootRef} className="aurea-preview min-h-screen" style={styleVars}>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link rel="stylesheet" href={googleFontsHref(d.typography.headingFont, d.typography.bodyFont)} />
       <style dangerouslySetInnerHTML={{ __html: effectsCss() }} />
       <PreviewEffects scope={rootRef} />
       <header
@@ -76,6 +79,7 @@ function SectionView({ section, spec }: { section: Section; spec: SiteSpec }) {
       return (
         <section className="hero reveal relative px-6 py-32 text-center">
           <canvas className="hero-canvas" aria-hidden="true" />
+          <span className="eyebrow">{spec.brief.industry}</span>
           <h1 className="mx-auto max-w-3xl text-4xl font-extrabold sm:text-6xl" style={{ color: 'var(--text)' }}>
             {section.heading}
           </h1>

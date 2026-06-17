@@ -1,7 +1,7 @@
 import type { SiteSpec, Page, Section, SeoMeta, BlogPost, LegalDoc, CatalogProduct } from '../ai/types';
 import { buildZip, type ZipEntry } from './zip';
 import { sitemapXml } from '../ai/seo';
-import { effectsCss, effectsJs } from './effects';
+import { effectsCss, effectsJs, googleFontsHref } from './effects';
 
 /**
  * Static HTML exporter.
@@ -44,6 +44,9 @@ function head(spec: SiteSpec, seo: SeoMeta): string {
   <meta name="twitter:title" content="${esc(seo.twitter.title)}">
   <meta name="twitter:description" content="${esc(seo.twitter.description)}">
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="${esc(googleFontsHref(spec.design.typography.headingFont, spec.design.typography.bodyFont))}">
   <link rel="stylesheet" href="/styles.css">
   ${jsonLd}
   <script src="/app.js" defer></script>
@@ -85,6 +88,7 @@ function sectionHtml(section: Section, spec: SiteSpec): string {
     case 'hero':
       return `<section class="hero reveal">
   <canvas class="hero-canvas" aria-hidden="true"></canvas>
+  <span class="eyebrow">${esc(spec.brief.industry)}</span>
   <h1>${esc(section.heading ?? '')}</h1>
   ${section.subheading ? `<p class="sub">${esc(section.subheading)}</p>` : ''}
   ${section.cta ? `<a class="btn" href="${href(section.cta.href)}">${esc(section.cta.label)}</a>` : ''}
