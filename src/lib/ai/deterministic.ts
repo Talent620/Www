@@ -326,27 +326,72 @@ export class DeterministicProvider implements GenerationProvider {
     ];
   }
 
-  async localize(brief: Brief, pages: Page[]): Promise<LocaleBundle[]> {
-    // Base UI strings, plus a localized variant per requested locale. Non-primary
-    // locales receive a tagged placeholder translation that real models replace.
-    const baseStrings: Record<string, string> = {
-      'nav.home': 'Home',
-      'nav.contact': 'Contact',
-      'cta.primary': brief.kind === 'STORE' ? 'Shop now' : 'Get started',
-      'form.submit': 'Send message',
-      'footer.rights': `© ${new Date().getFullYear()} ${brief.companyName}. All rights reserved.`,
-    };
-    return brief.locales.map((locale, idx) => ({
-      locale,
-      strings:
-        idx === 0
-          ? baseStrings
-          : Object.fromEntries(
-              Object.entries(baseStrings).map(([k, v]) => [k, `${v} [${locale}]`]),
-            ),
-    }));
+  async localize(brief: Brief, _pages: Page[]): Promise<LocaleBundle[]> {
+    const year = new Date().getFullYear();
+    const ctaKey = brief.kind === 'STORE' ? 'cta.shop' : 'cta.start';
+    return brief.locales.map((locale) => {
+      const dict = UI_DICTIONARIES[locale];
+      const base = dict ?? UI_DICTIONARIES.en!;
+      const strings: Record<string, string> = {
+        'nav.home': base['nav.home']!,
+        'nav.contact': base['nav.contact']!,
+        'cta.primary': base[ctaKey]!,
+        'form.submit': base['form.submit']!,
+        'footer.rights': `© ${year} ${brief.companyName}. ${base['footer.rights']!}`,
+      };
+      // Locales without a shipped dictionary get tagged English strings so the
+      // gap is visible and a live model can replace them later.
+      if (!dict && locale !== 'en') {
+        for (const k of Object.keys(strings)) strings[k] = `${strings[k]} [${locale}]`;
+      }
+      return { locale, strings };
+    });
   }
 }
+
+/** Shipped UI translations. Keys absent here fall back to tagged English. */
+const UI_DICTIONARIES: Record<string, Record<string, string>> = {
+  en: {
+    'nav.home': 'Home',
+    'nav.contact': 'Contact',
+    'cta.shop': 'Shop now',
+    'cta.start': 'Get started',
+    'form.submit': 'Send message',
+    'footer.rights': 'All rights reserved.',
+  },
+  pl: {
+    'nav.home': 'Strona główna',
+    'nav.contact': 'Kontakt',
+    'cta.shop': 'Kup teraz',
+    'cta.start': 'Rozpocznij',
+    'form.submit': 'Wyślij wiadomość',
+    'footer.rights': 'Wszelkie prawa zastrzeżone.',
+  },
+  de: {
+    'nav.home': 'Startseite',
+    'nav.contact': 'Kontakt',
+    'cta.shop': 'Jetzt einkaufen',
+    'cta.start': 'Loslegen',
+    'form.submit': 'Nachricht senden',
+    'footer.rights': 'Alle Rechte vorbehalten.',
+  },
+  fr: {
+    'nav.home': 'Accueil',
+    'nav.contact': 'Contact',
+    'cta.shop': 'Acheter',
+    'cta.start': 'Commencer',
+    'form.submit': 'Envoyer le message',
+    'footer.rights': 'Tous droits réservés.',
+  },
+  es: {
+    'nav.home': 'Inicio',
+    'nav.contact': 'Contacto',
+    'cta.shop': 'Comprar ahora',
+    'cta.start': 'Empezar',
+    'form.submit': 'Enviar mensaje',
+    'footer.rights': 'Todos los derechos reservados.',
+  },
+};
 
 /* ----------------------------- text helpers ------------------------------ */
 

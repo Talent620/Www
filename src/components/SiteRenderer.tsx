@@ -1,11 +1,15 @@
 import type { SiteSpec, Page, Section } from '@/lib/ai/types';
+import { ContactForm } from './ContactForm';
 
 /**
  * Renders a generated SiteSpec into a live page using the spec's own design
  * tokens (color, typography, radius) injected as CSS variables. This is the
  * preview surface; the same data drives an eventual static export.
+ *
+ * When `slug` is supplied (live preview) the contact form posts to the project's
+ * leads API; without it the form renders inert (static export).
  */
-export function SiteRenderer({ spec, page }: { spec: SiteSpec; page: Page }) {
+export function SiteRenderer({ spec, page, slug }: { spec: SiteSpec; page: Page; slug?: string }) {
   const d = spec.design;
   const styleVars = {
     '--bg': d.colors.background,
@@ -44,7 +48,7 @@ export function SiteRenderer({ spec, page }: { spec: SiteSpec; page: Page }) {
 
       <main>
         {page.sections.map((section, i) => (
-          <SectionView key={i} section={section} spec={spec} />
+          <SectionView key={i} section={section} spec={spec} slug={slug} />
         ))}
       </main>
 
@@ -60,7 +64,7 @@ export function SiteRenderer({ spec, page }: { spec: SiteSpec; page: Page }) {
   );
 }
 
-function SectionView({ section, spec }: { section: Section; spec: SiteSpec }) {
+function SectionView({ section, spec, slug }: { section: Section; spec: SiteSpec; slug?: string }) {
   switch (section.kind) {
     case 'hero':
       return (
@@ -144,22 +148,7 @@ function SectionView({ section, spec }: { section: Section; spec: SiteSpec }) {
     case 'contactForm':
       return (
         <Block heading={section.heading} subheading={section.subheading}>
-          <form className="mx-auto max-w-lg space-y-4">
-            {(section.fields ?? []).map((field) => (
-              <div key={field.name}>
-                <label className="mb-1 block text-sm font-medium" style={{ color: 'var(--text)' }}>
-                  {field.label}
-                  {field.required && <span style={{ color: 'var(--accent)' }}> *</span>}
-                </label>
-                {field.type === 'textarea' ? (
-                  <textarea rows={4} className="w-full rounded-lg border p-2.5 text-sm" style={{ borderColor: 'var(--surface)' }} />
-                ) : (
-                  <input type={field.type} className="w-full rounded-lg border p-2.5 text-sm" style={{ borderColor: 'var(--surface)' }} />
-                )}
-              </div>
-            ))}
-            <CtaButton label="Send message" />
-          </form>
+          <ContactForm slug={slug} fields={section.fields ?? []} submitLabel="Send message" />
         </Block>
       );
     case 'productGrid':

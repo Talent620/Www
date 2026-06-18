@@ -153,3 +153,83 @@ export async function listProjects(): Promise<StoredProject[]> {
 function emptyReport(): QualityReport {
   return { seo: 0, accessibility: 0, performance: 0, security: 0, findings: [], passed: false };
 }
+
+/* --------------------------------- leads --------------------------------- */
+
+export interface StoredLead {
+  id: string;
+  projectId: string;
+  name: string;
+  email: string;
+  company?: string;
+  message: string;
+  spam: boolean;
+  createdAt: string;
+}
+
+const leadsMemory: StoredLead[] = [];
+
+export async function saveLead(input: {
+  projectId: string;
+  name: string;
+  email: string;
+  company?: string;
+  message: string;
+  spam: boolean;
+}): Promise<StoredLead> {
+  const lead: StoredLead = {
+    id: makeId(),
+    ...input,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (hasDatabase()) {
+    try {
+      const row = await prisma.lead.create({
+        data: {
+          projectId: input.projectId,
+          name: input.name,
+          email: input.email,
+          company: input.company,
+          message: input.message,
+          spam: input.spam,
+        },
+      });
+      return { ...lead, id: row.id, createdAt: row.createdAt.toISOString() };
+    } catch {
+      /* fall through to memory */
+    }
+  }
+
+  leadsMemory.push(lead);
+  return lead;
+}
+
+export async function listLeads(projectId: string): Promise<StoredLead[]> {
+  if (hasDatabase()) {
+    try {
+      const rows = await prisma.lead.findMany({
+        where: { projectId },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      });
+      if (rows.length > 0 || leadsMemory.length === 0) {
+        return rows.map((r) => ({
+          id: r.id,
+          projectId: r.projectId,
+          name: r.name,
+          email: r.email,
+          company: r.company ?? undefined,
+          message: r.message,
+          spam: r.spam,
+          createdAt: r.createdAt.toISOString(),
+        }));
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  return leadsMemory
+    .filter((l) => l.projectId === projectId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}

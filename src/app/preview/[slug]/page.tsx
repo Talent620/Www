@@ -48,7 +48,7 @@ export default async function PreviewPage({
           ))}
         </nav>
       </div>
-      <SiteRenderer spec={spec} page={page} />
+      <SiteRenderer spec={spec} page={page} slug={project.slug} />
     </div>
   );
 }
