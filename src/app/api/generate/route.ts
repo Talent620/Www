@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import { parseBrief } from '@/lib/validation';
 import { generateSite } from '@/lib/ai';
 import { saveProject } from '@/lib/store';
+import { enforceRateLimit } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,10 @@ export const dynamic = 'force-dynamic';
  * Runs the autonomous generation engine and persists the result.
  */
 export async function POST(request: Request) {
+  // Generation is the most expensive operation (esp. with live AI) — cap it.
+  const limited = enforceRateLimit(request, 'generate', 20, 60_000);
+  if (limited) return limited;
+
   let payload: unknown;
   try {
     payload = await request.json();

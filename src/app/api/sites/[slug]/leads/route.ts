@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { timingSafeEqual } from 'node:crypto';
 import { getProject, saveLead, listLeads } from '@/lib/store';
+import { enforceRateLimit } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,6 +22,10 @@ const leadSchema = z.object({
  * applies a honeypot spam check, and stores the lead for the project owner.
  */
 export async function POST(request: Request, { params }: { params: { slug: string } }) {
+  // Public write endpoint — throttle to curb spam/abuse.
+  const limited = enforceRateLimit(request, 'leads', 10, 60_000);
+  if (limited) return limited;
+
   const project = await getProject(params.slug);
   if (!project) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -68,7 +74,7 @@ export async function POST(request: Request, { params }: { params: { slug: strin
 export async function GET(request: Request, { params }: { params: { slug: string } }) {
   const secret = process.env.AUTH_SECRET;
   const auth = request.headers.get('authorization') ?? '';
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!secret || !safeEqual(auth, `Bearer ${secret}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -79,4 +85,12 @@ export async function GET(request: Request, { params }: { params: { slug: string
 
   const leads = (await listLeads(project.id)).filter((l) => !l.spam);
   return NextResponse.json({ leads, count: leads.length });
+}
+
+/** Constant-time string comparison to avoid leaking the secret via timing. */
+function safeEqual(a: string, b: string): boolean {
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ba.length !== bb.length) return false;
+  return timingSafeEqual(ba, bb);
 }

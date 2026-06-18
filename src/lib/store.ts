@@ -18,10 +18,28 @@ export interface StoredProject {
  * otherwise an in-process store so the app is fully runnable with zero infra
  * (e.g. for previews, demos, and tests).
  */
+// In-memory projects keyed by id, with a slug→id index. Bounded with FIFO
+// eviction so a long-running keyless instance can't leak memory.
 const memory = new Map<string, StoredProject>();
+const slugIndex = new Map<string, string>();
+const MAX_MEMORY_PROJECTS = 500;
+const MAX_MEMORY_LEADS = 2000;
 
 function makeId(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+function rememberProject(project: StoredProject): void {
+  if (memory.size >= MAX_MEMORY_PROJECTS) {
+    const oldestId = memory.keys().next().value as string | undefined;
+    if (oldestId) {
+      const evicted = memory.get(oldestId);
+      memory.delete(oldestId);
+      if (evicted) slugIndex.delete(evicted.slug);
+    }
+  }
+  memory.set(project.id, project);
+  slugIndex.set(project.slug, project.id);
 }
 
 export async function saveProject(input: {
@@ -78,13 +96,15 @@ export async function saveProject(input: {
     }
   }
 
-  memory.set(id, project);
-  memory.set(slug, project);
+  rememberProject(project);
   return project;
 }
 
 export async function getProject(idOrSlug: string): Promise<StoredProject | null> {
-  if (memory.has(idOrSlug)) return memory.get(idOrSlug) ?? null;
+  const byId = memory.get(idOrSlug);
+  if (byId) return byId;
+  const viaSlug = slugIndex.get(idOrSlug);
+  if (viaSlug) return memory.get(viaSlug) ?? null;
 
   if (hasDatabase()) {
     try {
@@ -144,10 +164,7 @@ export async function listProjects(): Promise<StoredProject[]> {
       /* fall through */
     }
   }
-  const seen = new Set<string>();
-  return [...memory.values()]
-    .filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return [...memory.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 function emptyReport(): QualityReport {
@@ -202,6 +219,7 @@ export async function saveLead(input: {
   }
 
   leadsMemory.push(lead);
+  if (leadsMemory.length > MAX_MEMORY_LEADS) leadsMemory.shift();
   return lead;
 }
 
