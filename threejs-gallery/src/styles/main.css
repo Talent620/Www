@@ -1,0 +1,125 @@
+/*
+ * Layout strategy (the critical correction from the source course):
+ *
+ *   The course used `html, body { overflow: hidden; }`. That KILLS the scroll
+ *   gallery — with no scrollable height, window.scrollY never changes and the
+ *   camera never moves. We do the opposite: give <body> real height so the page
+ *   scrolls, pin the canvas with position: fixed, and only clamp horizontal
+ *   overflow to avoid stray scrollbars.
+ */
+
+:root {
+  --bg: #0b0d12;
+  --fg: #f4f6fb;
+  --muted: #9aa4b2;
+  --accent: #6ea8fe;
+  /* Total scroll length. 500vh => 4 viewport heights of travel. */
+  --scroll-height: 500vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* Smooth, but NOT hidden. The whole effect depends on vertical scroll. */
+  scroll-behavior: auto;
+}
+
+body {
+  margin: 0;
+  min-height: var(--scroll-height);
+  overflow-x: hidden; /* clamp horizontal only — never block vertical scroll */
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The Three.js render target is fixed to the viewport behind the content. */
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 0;
+}
+
+/* Foreground text. pointer-events: none keeps scroll/drag passing through to
+   the page so the canvas never traps the gesture. */
+.overlay {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.intro {
+  position: fixed;
+  top: clamp(1.5rem, 6vh, 4rem);
+  left: clamp(1.5rem, 5vw, 4rem);
+  max-width: min(90vw, 32rem);
+}
+
+.kicker {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.28em;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.intro h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1.05;
+  font-weight: 700;
+}
+
+.hint {
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+.scroll-spacer {
+  height: var(--scroll-height);
+  pointer-events: none;
+}
+
+/* Debug overlay — fixed, monospace, top-right. */
+.debug {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.6rem;
+  background: rgba(8, 10, 14, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--muted);
+  min-width: 12rem;
+  pointer-events: none;
+  white-space: pre;
+}
+
+.debug b {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+/* Respect users who prefer reduced motion: kill the hint animation. The scroll
+   camera itself is gentle and user-driven, so it stays. */
+@media (prefers-reduced-motion: reduce) {
+  .hint { animation: none; }
+}

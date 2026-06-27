@@ -1,0 +1,28 @@
+{
+  "name": "threejs-3d-gallery",
+  "version": "1.0.0",
+  "description": "Interactive scroll-driven 3D gallery / showroom built with Vite + Vanilla JS + Three.js.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "playwright test"
+  },
+  "keywords": [
+    "threejs",
+    "vite",
+    "3d",
+    "gallery",
+    "webgl",
+    "scroll"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.185.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "vite": "^6.0.0"
+  }
+}

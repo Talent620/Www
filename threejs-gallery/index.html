@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0d12" />
+    <title>3D Gallery — Three.js Showroom</title>
+    <!-- Empty inline favicon: prevents a 404 console error without an asset. -->
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./src/styles/main.css" />
+  </head>
+  <body>
+    <!-- The WebGL canvas is created by Three.js and pinned (position: fixed)
+         behind the page content. The .scroll-spacer below gives the document
+         enough height to scroll, which drives the camera. -->
+    <canvas id="scene"></canvas>
+
+    <!-- Foreground HTML. Pointer-events are disabled in CSS so the page still
+         scrolls naturally over the fixed canvas. -->
+    <main class="overlay">
+      <header class="intro">
+        <p class="kicker">THREE.JS · SCROLL SHOWROOM</p>
+        <h1>Interactive 3D Gallery</h1>
+        <p class="hint">Scroll to move the camera through the corridor ↓</p>
+      </header>
+    </main>
+
+    <!-- Pure scroll height. Tall enough (set in CSS via min-height) that the
+         camera traverses the whole gallery. -->
+    <div class="scroll-spacer" aria-hidden="true"></div>
+
+    <!-- Debug overlay populated at runtime by src/ui/debugOverlay.js -->
+    <aside id="debug" class="debug" aria-hidden="true"></aside>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
