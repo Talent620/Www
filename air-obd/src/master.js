@@ -12,21 +12,22 @@ import net from 'node:net';
 import WebSocket from 'ws';
 import { CONTROL, parseControl } from './protocol.js';
 import { makeLogger } from './log.js';
+import { cfg } from './config.js';
 
 const log = makeLogger('master');
 
 function required(name) {
-  const v = process.env[name];
-  if (!v) { console.error(`Missing required env ${name}`); process.exit(1); }
+  const v = cfg(name);
+  if (!v) { console.error(`Brak ustawienia ${name} (uruchom kreatora: npm run menu)`); process.exit(1); }
   return v;
 }
 
-const RELAY_URL = process.env.RELAY_URL || 'ws://localhost:8080';
+const RELAY_URL = cfg('RELAY_URL', 'ws://localhost:8080');
 const SESSION = required('SESSION');
-const TOKEN = process.env.RELAY_TOKEN || '';
-const LISTEN_HOST = process.env.MASTER_HOST || '127.0.0.1';
-const LISTEN_PORT = Number(process.env.MASTER_PORT || 35000);
-const RECONNECT_MS = Number(process.env.RECONNECT_MS || 3000);
+const TOKEN = cfg('RELAY_TOKEN', '');
+const LISTEN_HOST = cfg('MASTER_HOST', '127.0.0.1');
+const LISTEN_PORT = Number(cfg('MASTER_PORT', 35000));
+const RECONNECT_MS = Number(cfg('RECONNECT_MS', 3000));
 
 let ws = null;
 let tcpClient = null;

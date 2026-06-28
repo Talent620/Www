@@ -5,6 +5,10 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
+    "start": "node src/menu.js",
+    "menu": "node src/menu.js",
+    "doctor": "node src/menu.js --doctor",
+    "scan": "node src/scan-obd.js",
     "relay": "node src/relay.js",
     "slave": "node src/slave.js",
     "master": "node src/master.js",

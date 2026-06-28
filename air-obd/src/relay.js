@@ -10,13 +10,14 @@ import { URL } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { ROLES, CONTROL, encodeControl, peerRole } from './protocol.js';
 import { makeLogger } from './log.js';
+import { cfg } from './config.js';
 
 const log = makeLogger('relay');
 
-const PORT = Number(process.env.RELAY_PORT || 8080);
-const HOST = process.env.RELAY_HOST || '0.0.0.0';
-const TOKEN = process.env.RELAY_TOKEN || '';
-const HEARTBEAT_MS = Number(process.env.HEARTBEAT_MS || 15000);
+const PORT = Number(cfg('RELAY_PORT', 8080));
+const HOST = cfg('RELAY_HOST', '0.0.0.0');
+const TOKEN = cfg('RELAY_TOKEN', '');
+const HEARTBEAT_MS = Number(cfg('HEARTBEAT_MS', 15000));
 
 if (!TOKEN) {
   log.warn('RELAY_TOKEN is empty — anyone who knows a SESSION id can connect. Set RELAY_TOKEN in production.');

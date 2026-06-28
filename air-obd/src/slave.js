@@ -8,25 +8,26 @@ import net from 'node:net';
 import WebSocket from 'ws';
 import { CONTROL, parseControl } from './protocol.js';
 import { makeLogger } from './log.js';
+import { cfg } from './config.js';
 
 const log = makeLogger('slave');
 
 function required(name) {
-  const v = process.env[name];
-  if (!v) { console.error(`Missing required env ${name}`); process.exit(1); }
+  const v = cfg(name);
+  if (!v) { console.error(`Brak ustawienia ${name} (uruchom kreatora: npm run menu)`); process.exit(1); }
   return v;
 }
 
-const RELAY_URL = process.env.RELAY_URL || 'ws://localhost:8080';
+const RELAY_URL = cfg('RELAY_URL', 'ws://localhost:8080');
 const SESSION = required('SESSION');
-const TOKEN = process.env.RELAY_TOKEN || '';
-const RECONNECT_MS = Number(process.env.RECONNECT_MS || 3000);
+const TOKEN = cfg('RELAY_TOKEN', '');
+const RECONNECT_MS = Number(cfg('RECONNECT_MS', 3000));
 
 // Upstream OBD adapter — pick ONE:
-const ADAPTER_HOST = process.env.ADAPTER_HOST;          // WiFi ELM327, e.g. 192.168.0.10
-const ADAPTER_PORT = Number(process.env.ADAPTER_PORT || 35000);
-const SERIAL_PATH = process.env.SERIAL_PATH;            // e.g. /dev/ttyUSB0 or COM3
-const SERIAL_BAUD = Number(process.env.SERIAL_BAUD || 38400);
+const ADAPTER_HOST = cfg('ADAPTER_HOST');               // WiFi ELM327, e.g. 192.168.0.10
+const ADAPTER_PORT = Number(cfg('ADAPTER_PORT', 35000));
+const SERIAL_PATH = cfg('SERIAL_PATH');                 // e.g. /dev/ttyUSB0 or COM3
+const SERIAL_BAUD = Number(cfg('SERIAL_BAUD', 38400));
 
 let ws = null;
 let upstream = null;

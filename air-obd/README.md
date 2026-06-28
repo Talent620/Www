@@ -13,6 +13,42 @@ To jest właśnie „narzędzie, którego brakuje" między fizycznym Masterem
 a Slave'em: oba urządzenia łączą się **na zewnątrz** do serwera relay, więc
 działa przez hotspot z telefonu i sieć domową **bez przekierowania portów**.
 
+## ⭐ Najprościej: kliknij i działaj (dla każdego)
+
+Nie musisz znać żadnych komend.
+
+- **Windows:** kliknij dwa razy **`START TUTAJ.bat`**.
+- **macOS / Linux:** uruchom **`./start.sh`** (raz nadaj prawa: `chmod +x start.sh`).
+
+Plik startowy **sam** sprawdzi czy masz Node.js (jak nie — otworzy stronę do
+pobrania), **sam** doinstaluje składniki i otworzy **kreator z menu**:
+
+```
+  Stan urządzenia:
+   ✓ Node.js — v20.x
+   ✓ Składniki programu — zainstalowane
+   ✗ Konfiguracja — jeszcze nie ustawiona
+
+  Co chcesz zrobić? Wpisz numer i ENTER:
+   1) JESTEM W AUCIE — udostępniam auto            (SLAVE)
+   2) JESTEM PRZY LAPTOPIE — łączę się z autem     (MASTER)
+   3) URUCHOM SERWER                               (RELAY)
+   4) SPRAWDŹ POŁĄCZENIE (doktor)
+   5) ZNAJDŹ ADAPTER OBD w sieci
+   6) USTAWIENIA
+   7) POMOC
+   0) Wyjście
+```
+
+Każda opcja **najpierw tłumaczy**, co się stanie po wybraniu i co to spowoduje,
+prowadzi **krok po kroku** i po każdym kroku pokazuje **kontrolkę ✓/✗** (czy
+adapter odpowiada, czy serwer żyje, czy port wolny, czy mechanik się połączył).
+Gdy coś jest na czerwono — pokazuje **podpowiedź, jak naprawić**. Nie da się
+„czegoś nie uruchomić" — zawsze widać, co jest dalej do zrobienia.
+
+> Ustawienia zapisują się same do `airobd.config.json` — **nie trzeba** ręcznie
+> edytować żadnych plików. „Doktor" (opcja 4) w każdej chwili sprawdzi cały stan.
+
 ## Trzy komponenty
 
 | Komponent  | Gdzie działa            | Rola |
