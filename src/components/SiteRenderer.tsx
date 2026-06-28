@@ -1,5 +1,6 @@
 import type { SiteSpec, Page, Section } from '@/lib/ai/types';
 import { ContactForm } from './ContactForm';
+import { BuyButton } from './BuyButton';
 
 /**
  * Renders a generated SiteSpec into a live page using the spec's own design
@@ -163,6 +164,7 @@ function SectionView({ section, spec, slug }: { section: Section; spec: SiteSpec
                 <p className="mt-1 font-bold" style={{ color: 'var(--primary)' }}>
                   ${(p.priceCents / 100).toFixed(2)}
                 </p>
+                <BuyButton slug={slug} sku={p.sku} />
               </Card>
             ))}
           </div>
