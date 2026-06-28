@@ -1,0 +1,16 @@
+# Run the relay on a VPS. Put it behind a TLS reverse proxy (Caddy/Traefik/Nginx)
+# so agents can connect with wss://. Set RELAY_TOKEN in a .env file next to this.
+services:
+  relay:
+    image: node:20-alpine
+    working_dir: /app
+    command: node src/relay.js
+    environment:
+      RELAY_PORT: "8080"
+      RELAY_TOKEN: ${RELAY_TOKEN:?set RELAY_TOKEN}
+      HEARTBEAT_MS: "15000"
+    volumes:
+      - ./:/app:ro
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

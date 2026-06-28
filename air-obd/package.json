@@ -1,0 +1,22 @@
+{
+  "name": "air-obd-tunnel",
+  "version": "0.1.0",
+  "description": "Transparent OBD-II-over-internet tunnel for remote diagnostics (Master + Slave + Relay)",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "relay": "node src/relay.js",
+    "slave": "node src/slave.js",
+    "master": "node src/master.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "optionalDependencies": {
+    "serialport": "^12.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
