@@ -23,5 +23,7 @@ if [ ! -f "node_modules/ws/package.json" ]; then
   npm install --no-audit --no-fund
 fi
 
-# 3. Menu
-node src/menu.js
+# 3. GUI (samo otworzy okno w przeglądarce)
+echo "  Otwieram okno programu w przeglądarce…"
+echo "  (To okno terminala zostaw otwarte — zamknięcie wyłącza program.)"
+node src/gui-server.js

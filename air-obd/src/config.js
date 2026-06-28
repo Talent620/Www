@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const CONFIG_PATH = path.join(__dirname, '..', 'airobd.config.json');
+export const CONFIG_PATH = process.env.AIROBD_CONFIG || path.join(__dirname, '..', 'airobd.config.json');
 
 let fileCfg = {};
 

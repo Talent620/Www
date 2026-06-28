@@ -37,9 +37,12 @@ if not exist "node_modules\ws\package.json" (
   )
 )
 
-REM --- 3. Odpalamy menu ---
-node "src\menu.js"
+REM --- 3. Odpalamy GUI (samo otworzy okno w przegladarce) ---
+echo   Otwieram okno programu w przegladarce...
+echo   (To czarne okno ZOSTAW OTWARTE - zamkniecie wylacza program.)
+echo.
+node "src\gui-server.js"
 
 echo.
-echo   Menu zamkniete. Mozesz zamknac to okno.
+echo   Program zatrzymany. Mozesz zamknac to okno.
 pause

@@ -13,7 +13,7 @@ To jest właśnie „narzędzie, którego brakuje" między fizycznym Masterem
 a Slave'em: oba urządzenia łączą się **na zewnątrz** do serwera relay, więc
 działa przez hotspot z telefonu i sieć domową **bez przekierowania portów**.
 
-## ⭐ Najprościej: kliknij i działaj (dla każdego)
+## ⭐ Najprościej: GUI (okno w przeglądarce) — dla każdego
 
 Nie musisz znać żadnych komend.
 
@@ -21,7 +21,22 @@ Nie musisz znać żadnych komend.
 - **macOS / Linux:** uruchom **`./start.sh`** (raz nadaj prawa: `chmod +x start.sh`).
 
 Plik startowy **sam** sprawdzi czy masz Node.js (jak nie — otworzy stronę do
-pobrania), **sam** doinstaluje składniki i otworzy **kreator z menu**:
+pobrania), **sam** doinstaluje składniki i **sam otworzy okno programu** w
+przeglądarce. W oknie:
+
+1. **Kontrolki** (zielone/czerwone diody): Node, składniki, konfiguracja oraz —
+   jeśli ustawione — serwer, adapter, port.
+2. **Wybierasz rolę** (JESTEM W AUCIE / PRZY LAPTOPIE / SERWER) — pod spodem
+   pojawia się **opis, co się stanie po kliknięciu Start i co to spowoduje**.
+3. **Wypełniasz pola** (zapisują się same) i klikasz **Start** / **Stop**.
+4. Dla MASTER program **wprost pokazuje**, co wpisać w VCDS:
+   `Adres 127.0.0.1` + `Port 35000`.
+5. **Podgląd na żywo** i lista postępu z diodami (np. „Mechanik się połączył").
+
+> Wolisz tekstowe menu w terminalu? Uruchom `npm run menu`.
+> Sam serwer GUI: `npm start` (otworzy http://127.0.0.1:7777).
+
+### Albo: kreator tekstowy w terminalu
 
 ```
   Stan urządzenia:

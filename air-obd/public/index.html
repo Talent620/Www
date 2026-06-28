@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIR OBD — zdalna diagnostyka</title>
+<style>
+  :root{
+    --bg:#0f1419; --card:#1a212b; --card2:#222c38; --line:#2c3848;
+    --txt:#e6edf3; --dim:#8b98a9; --green:#2ec26a; --red:#ff5d5d; --yellow:#ffcc55;
+    --blue:#4aa3ff; --accent:#4aa3ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:20px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  header h1{font-size:20px;margin:0}
+  header .sub{color:var(--dim);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0}
+  .card h2{margin:0 0 4px;font-size:16px}
+  .card p.desc{color:var(--dim);margin:0 0 14px;font-size:13px}
+  .dots{display:flex;flex-wrap:wrap;gap:10px 22px}
+  .dot{display:flex;align-items:center;gap:8px;font-size:14px}
+  .led{width:12px;height:12px;border-radius:50%;background:var(--dim);flex:0 0 auto;box-shadow:0 0 0 0 rgba(0,0,0,0)}
+  .led.ok{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .led.bad{background:var(--red);box-shadow:0 0 8px var(--red)}
+  .led.wait{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
+  .det{color:var(--dim);font-size:12px}
+  .hint{color:var(--yellow);font-size:12px;margin-left:20px}
+  .roles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  @media(max-width:680px){.roles{grid-template-columns:1fr}}
+  .role{cursor:pointer;background:var(--card2);border:2px solid var(--line);border-radius:12px;padding:16px;text-align:left;transition:.15s;color:var(--txt)}
+  .role:hover{border-color:var(--accent)}
+  .role.active{border-color:var(--accent);background:#1d3147}
+  .role .big{font-size:15px;font-weight:700;margin-bottom:4px}
+  .role .small{color:var(--dim);font-size:12px}
+  label{display:block;font-size:13px;margin:10px 0 4px;font-weight:600}
+  label .q{color:var(--dim);font-weight:400}
+  input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:#0c1117;color:var(--txt);font-size:14px}
+  input:focus{outline:none;border-color:var(--accent)}
+  .row{display:flex;gap:12px}.row>div{flex:1}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  button.act{cursor:pointer;border:0;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:700;color:#06121f}
+  .start{background:var(--green)} .stop{background:var(--red);color:#fff} .ghost{background:var(--card2);color:var(--txt);border:1px solid var(--line);font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .explain{background:#0c1117;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px;color:var(--dim);margin-top:8px}
+  .explain b{color:var(--txt)}
+  .check{display:flex;align-items:center;gap:8px;padding:4px 0}
+  .vcds{background:#10301c;border:1px solid #1f6b3d;border-radius:10px;padding:12px;margin-top:12px;display:none}
+  .vcds.show{display:block}
+  .vcds code{background:#06121f;padding:3px 8px;border-radius:6px;color:var(--green);font-size:15px}
+  #log{background:#06121f;border:1px solid var(--line);border-radius:10px;padding:12px;height:220px;overflow:auto;font:12px/1.5 ui-monospace,Consolas,monospace;color:#b8c4d0;white-space:pre-wrap}
+  .pill{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--card2);color:var(--dim)}
+  .pill.on{background:#10301c;color:var(--green)}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--line);padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span style="font-size:26px">🚗</span>
+    <div>
+      <h1>AIR OBD — zdalna diagnostyka</h1>
+      <div class="sub">Połącz auto i laptop przez internet. Kliknij rolę, wypełnij pola, naciśnij <b>Start</b>.</div>
+    </div>
+    <span id="runPill" class="pill" style="margin-left:auto">zatrzymane</span>
+  </header>
+
+  <!-- KONTROLKI -->
+  <div class="card">
+    <h2>Stan urządzenia <span class="det" id="lastCheck"></span></h2>
+    <p class="desc">Zielone = OK, czerwone = trzeba poprawić (pod spodem podpowiedź).</p>
+    <div class="dots" id="basics"></div>
+    <div class="dots" id="conn" style="margin-top:12px"></div>
+    <div class="btns">
+      <button class="act ghost" onclick="refresh()">🔄 Sprawdź ponownie (doktor)</button>
+    </div>
+  </div>
+
+  <!-- WYBÓR ROLI -->
+  <div class="card">
+    <h2>1. Kim jesteś?</h2>
+    <p class="desc">Wybierz, gdzie jesteś. Pod spodem pojawi się opis i pola do wypełnienia.</p>
+    <div class="roles">
+      <button class="role" data-role="slave" onclick="pick('slave')">
+        <div class="big">🚙 JESTEM W AUCIE</div>
+        <div class="small">Udostępniam swoje auto (SLAVE)</div>
+      </button>
+      <button class="role" data-role="master" onclick="pick('master')">
+        <div class="big">💻 PRZY LAPTOPIE</div>
+        <div class="small">Łączę się z autem, mam VCDS (MASTER)</div>
+      </button>
+      <button class="role" data-role="relay" onclick="pick('relay')">
+        <div class="big">🖥️ SERWER</div>
+        <div class="small">Łączę oba urządzenia (RELAY)</div>
+      </button>
+    </div>
+    <div class="explain" id="explain" style="display:none"></div>
+  </div>
+
+  <!-- USTAWIENIA + START -->
+  <div class="card" id="formCard" style="display:none">
+    <h2>2. Ustawienia</h2>
+    <p class="desc">Wypełnij pola. Zapisują się automatycznie — nie musisz nic edytować ręcznie.</p>
+    <div id="fields"></div>
+
+    <div id="scanRow" class="btns" style="display:none">
+      <button class="act ghost" onclick="doScan()">📡 Nie znam adresu adaptera — znajdź go sam</button>
+    </div>
+
+    <div class="vcds" id="vcds"></div>
+
+    <div class="btns">
+      <button class="act start" id="startBtn" onclick="start()">▶ Start</button>
+      <button class="act stop" id="stopBtn" onclick="stop()" disabled>■ Stop</button>
+    </div>
+
+    <div id="milestones" style="margin-top:12px"></div>
+  </div>
+
+  <!-- PODGLĄD -->
+  <div class="card">
+    <h2>Podgląd na żywo</h2>
+    <p class="desc">Co dzieje się w środku (przydatne, gdy coś nie gra).</p>
+    <div id="log"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let role = null;
+let cfg = {};
+let running = null;
+
+const FIELDS = {
+  slave: [
+    ['RELAY_URL','Adres serwera','od osoby z Masterem/serwerem, np. wss://serwer.pl','ws://localhost:8080'],
+    ['RELAY_TOKEN','Hasło/token serwera','identyczne po obu stronach','',true],
+    ['SESSION','ID sesji','wspólne hasło tej sesji, takie samo jak Master (np. leon-123)',''],
+    ['ADAPTER_HOST','Adres adaptera OBD w aucie','WiFi ELM327, zwykle 192.168.0.10','192.168.0.10'],
+    ['ADAPTER_PORT','Port adaptera','zwykle 35000','35000'],
+  ],
+  master: [
+    ['RELAY_URL','Adres serwera','ten sam, co w aucie','ws://localhost:8080'],
+    ['RELAY_TOKEN','Hasło/token serwera','identyczne po obu stronach','',true],
+    ['SESSION','ID sesji','takie samo jak w aucie (np. leon-123)',''],
+    ['MASTER_PORT','Lokalny port dla VCDS','zwykle 35000','35000'],
+  ],
+  relay: [
+    ['RELAY_PORT','Port serwera','zwykle 8080','8080'],
+    ['RELAY_TOKEN','Hasło/token serwera','wymyśl długi, losowy — podasz go obu stronom','',true],
+  ],
+};
+
+const EXPLAIN = {
+  slave:`<b>Co to robi:</b> zamienia to urządzenie w aucie w „przedłużacz" gniazda OBD przez internet.<br>
+         <b>Po kliknięciu Start:</b> sprawdzę adapter i serwer, połączę się i pokażę, gdy mechanik się podłączy.<br>
+         <b>Spowoduje:</b> osoba z Masterem zobaczy Twoje auto tak, jakby siedziała obok.<br>
+         <b>Potrzebujesz:</b> adapter wpięty + zapłon ON, internet w aucie, dane od osoby z Masterem.`,
+  master:`<b>Co to robi:</b> tworzy na tym laptopie lokalne gniazdo, do którego podłączysz VCDS/OBD.<br>
+          <b>Po kliknięciu Start:</b> sprawdzę port i serwer, a gdy auto będzie online — podam co wpisać w programie.<br>
+          <b>Spowoduje:</b> program diagnostyczny zobaczy zdalne auto jak podpięte kablem.<br>
+          <b>Potrzebujesz:</b> program z połączeniem sieciowym/WiFi/TCP, uruchomiony Slave po drugiej stronie.`,
+  relay:`<b>Co to robi:</b> uruchamia serwer pośredniczący, do którego łączą się oba urządzenia.<br>
+         <b>Po kliknięciu Start:</b> sprawdzę port i wystartuję serwer; podam adres do wpisania po obu stronach.<br>
+         <b>Spowoduje:</b> Master i Slave odnajdą się po ID sesji i tokenie (działa przez hotspot).<br>
+         <b>Potrzebujesz:</b> najlepiej VPS z publicznym IP; do testu w domu wystarczy ten komputer.`,
+};
+
+function toast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1800);}
+function ledClass(ok){return ok?'ok':'bad';}
+
+function renderDots(elId, items){
+  const el=document.getElementById(elId); el.innerHTML='';
+  for(const it of items){
+    const d=document.createElement('div'); d.className='dot';
+    d.innerHTML=`<span class="led ${ledClass(it.ok)}"></span><span>${it.label}</span>`+
+      (it.detail?` <span class="det">— ${it.detail}</span>`:'');
+    el.appendChild(d);
+    if(!it.ok && it.hint){const h=document.createElement('div');h.className='hint';h.textContent='➜ '+it.hint;el.appendChild(h);}
+  }
+}
+
+async function refresh(){
+  try{
+    const s=await (await fetch('/api/status')).json();
+    cfg=s.config||{};
+    running=s.running;
+    renderDots('basics', s.basics);
+    renderDots('conn', s.conn);
+    document.getElementById('lastCheck').textContent='(sprawdzono '+new Date().toLocaleTimeString()+')';
+    setRunning(running);
+    if(role) fillFields(); // wypełnij zapisanymi wartościami
+    renderMilestones(s.milestones||[]);
+  }catch(e){ toast('Nie mogę pobrać stanu'); }
+}
+
+function pick(r){
+  role=r;
+  document.querySelectorAll('.role').forEach(b=>b.classList.toggle('active', b.dataset.role===r));
+  document.getElementById('explain').style.display='block';
+  document.getElementById('explain').innerHTML=EXPLAIN[r];
+  document.getElementById('formCard').style.display='block';
+  document.getElementById('scanRow').style.display = r==='slave' ? 'flex':'none';
+  fillFields();
+  updateVcds();
+}
+
+function fillFields(){
+  const box=document.getElementById('fields'); box.innerHTML='';
+  for(const [key,label,q,def,secret] of FIELDS[role]){
+    const wrap=document.createElement('div');
+    const val = (cfg[key]!=null && cfg[key]!=='') ? cfg[key] : def;
+    wrap.innerHTML=`<label>${label} <span class="q">— ${q}</span></label>
+      <input id="f_${key}" type="${secret?'password':'text'}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${def||''}">`;
+    box.appendChild(wrap);
+  }
+}
+
+function gather(){
+  const out={};
+  for(const [key] of FIELDS[role]){ const el=document.getElementById('f_'+key); if(el) out[key]=el.value; }
+  out.ROLE=role;
+  return out;
+}
+
+async function saveCfg(){
+  const data=gather();
+  await fetch('/api/config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});
+  cfg={...cfg,...data};
+}
+
+async function start(){
+  if(!role) return toast('Najpierw wybierz rolę');
+  await saveCfg();
+  const r=await (await fetch('/api/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({role})})).json();
+  if(!r.ok) return toast(r.error||'Nie udało się uruchomić');
+  toast('Uruchomiono '+role);
+  updateVcds();
+  setTimeout(refresh,600);
+}
+async function stop(){ await fetch('/api/stop',{method:'POST'}); toast('Zatrzymano'); }
+
+async function doScan(){
+  toast('Skanuję sieć… (kilkanaście sekund)');
+  const r=await (await fetch('/api/scan',{method:'POST'})).json();
+  if(r.found && r.found.length){ toast('Znaleziono: '+r.found[0].host+':'+r.found[0].port); await refresh(); fillFields(); }
+  else toast('Nie znaleziono adaptera');
+}
+
+function setRunning(r){
+  running=r;
+  const pill=document.getElementById('runPill');
+  pill.textContent = r? ('działa: '+r) : 'zatrzymane';
+  pill.className='pill'+(r?' on':'');
+  document.getElementById('startBtn').disabled = !!r;
+  document.getElementById('stopBtn').disabled = !r;
+}
+
+function updateVcds(){
+  const v=document.getElementById('vcds');
+  if(role==='master'){
+    const port=(document.getElementById('f_MASTER_PORT')||{}).value || cfg.MASTER_PORT || '35000';
+    v.className='vcds show';
+    v.innerHTML=`👉 W programie diagnostycznym (VCDS itp.) wybierz połączenie <b>WiFi / sieć / TCP</b> i wpisz:<br>
+      Adres: <code>127.0.0.1</code> &nbsp; Port: <code>${port}</code>`;
+  } else { v.className='vcds'; v.innerHTML=''; }
+}
+
+function renderMilestones(ms){
+  const box=document.getElementById('milestones'); box.innerHTML='';
+  if(!ms || !ms.length) return;
+  const h=document.createElement('div'); h.style.fontWeight='600'; h.style.margin='4px 0'; h.textContent='Postęp:'; box.appendChild(h);
+  for(const m of ms){
+    const d=document.createElement('div'); d.className='check';
+    d.innerHTML=`<span class="led ${ledClass(m.ok)}"></span><span>${m.label}</span>`;
+    box.appendChild(d);
+  }
+}
+
+// ---- WebSocket: logi + stan na żywo ----
+function connectWs(){
+  const ws=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws');
+  const log=document.getElementById('log');
+  ws.onmessage=(ev)=>{
+    const m=JSON.parse(ev.data);
+    if(m.type==='log'){ log.textContent += (m.line+'\n'); log.scrollTop=log.scrollHeight; }
+    else if(m.type==='running'){ setRunning(m.role); }
+    else if(m.type==='milestones'){ renderMilestones(m.milestones); }
+  };
+  ws.onclose=()=>setTimeout(connectWs,1500);
+}
+
+['MASTER_PORT'].forEach(()=>{}); // no-op
+document.addEventListener('input',(e)=>{ if(e.target.id==='f_MASTER_PORT') updateVcds(); });
+
+refresh();
+connectWs();
+setInterval(refresh, 4000);
+</script>
+</body>
+</html>

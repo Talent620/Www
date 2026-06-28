@@ -8,6 +8,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CONFIG_PATH } from './config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -35,12 +36,12 @@ export function checkDeps() {
 }
 
 export function checkConfig() {
-  const ok = fs.existsSync(path.join(ROOT, 'airobd.config.json'));
+  const ok = fs.existsSync(CONFIG_PATH);
   return {
     ok,
     label: 'Konfiguracja',
     detail: ok ? 'zapisana' : 'jeszcze nie ustawiona',
-    hint: ok ? '' : 'Przejdź przez kreator (opcja 1, 2 lub 3 w menu)',
+    hint: ok ? '' : 'Wybierz rolę, wypełnij pola i naciśnij Start',
   };
 }
 
